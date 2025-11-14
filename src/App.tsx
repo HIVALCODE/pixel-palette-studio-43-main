@@ -13,6 +13,7 @@ import AsciiArt from "./pages/AsciiArt";
 import Mosaic from "./pages/Mosaic";
 import Gallery from "./pages/Gallery";
 import NotFound from "./pages/NotFound";
+import Perspective from "./pages/Perspective";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
                   <Route path="/pixel-art" element={<PixelArt />} />
                   <Route path="/ascii-art" element={<AsciiArt />} />
                   <Route path="/mosaic" element={<Mosaic />} />
+                  <Route path="/perspective" element={<Perspective />} />
                   <Route path="/gallery" element={<Gallery />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />

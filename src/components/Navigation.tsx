@@ -1,5 +1,5 @@
 import { NavLink } from "@/components/NavLink";
-import { Grid3x3, Circle, Grid2x2, Type, Grid as GridIcon, Images } from "lucide-react";
+import { Grid3x3, Circle, Grid2x2, Type, Grid as GridIcon, Images, Ruler } from "lucide-react";
 
 export const Navigation = () => {
   return (
@@ -47,6 +47,14 @@ export const Navigation = () => {
           >
             <GridIcon className="h-4 w-4" />
             Mosaic
+          </NavLink>
+          <NavLink
+            to="/perspective"
+            className="px-4 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors flex items-center gap-2"
+            activeClassName="bg-accent text-foreground"
+          >
+            <Ruler className="h-4 w-4" />
+            Perspective
           </NavLink>
           <NavLink
             to="/gallery"
