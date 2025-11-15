@@ -2,6 +2,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Download, Copy, RotateCcw, Save } from "lucide-react";
 
 interface ControlPanelProps {
@@ -19,6 +20,10 @@ interface ControlPanelProps {
   onGammaChange: (value: number) => void;
   threshold: number;
   onThresholdChange: (value: number) => void;
+  ditherSize: number;
+  onDitherSizeChange: (value: number) => void;
+  overlayOriginalColors: boolean;
+  onOverlayOriginalColorsChange: (value: boolean) => void;
   onSaveToGallery: () => void;
   onExportPNG: () => void;
   onExportSVG: () => void;
@@ -43,6 +48,10 @@ export const ControlPanel = ({
   onGammaChange,
   threshold,
   onThresholdChange,
+  ditherSize,
+  onDitherSizeChange,
+  overlayOriginalColors,
+  onOverlayOriginalColorsChange,
   onSaveToGallery,
   onExportPNG,
   onExportSVG,
@@ -137,6 +146,21 @@ export const ControlPanel = ({
           <h3 className="text-sm font-semibold">Dithering Options</h3>
           
           <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="dither-size" className="text-sm">Dither Size</Label>
+              <span className="text-xs text-muted-foreground">{ditherSize}x</span>
+            </div>
+            <Slider
+              id="dither-size"
+              min={1}
+              max={16}
+              step={1}
+              value={[ditherSize]}
+              onValueChange={(value) => onDitherSizeChange(value[0])}
+            />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="dithering">Dithering Method</Label>
             <Select value={ditheringMethod} onValueChange={onDitheringMethodChange}>
               <SelectTrigger id="dithering">
@@ -149,6 +173,17 @@ export const ControlPanel = ({
                 <SelectItem value="threshold">Threshold</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="overlay-colors"
+              checked={overlayOriginalColors}
+              onCheckedChange={(checked) => onOverlayOriginalColorsChange(checked === true)}
+            />
+            <Label htmlFor="overlay-colors" className="text-sm">
+              Overlay original colors
+            </Label>
           </div>
         </div>
 

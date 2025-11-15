@@ -18,6 +18,9 @@ const Index = () => {
   const [contrast, setContrast] = useState(0);
   const [gamma, setGamma] = useState(1);
   const [threshold, setThreshold] = useState(128);
+  const [ditherSize, setDitherSize] = useState(1);
+  const [overlayOriginalColors, setOverlayOriginalColors] = useState(false);
+  const [ditherMask, setDitherMask] = useState<Uint8ClampedArray | null>(null);
 
   const processingRef = useRef(false);
 
@@ -51,18 +54,34 @@ const Index = () => {
       );
 
       // Then apply dithering
-      const dithered = applyDithering(
+      const { imageData: dithered, maskData } = applyDithering(
         imageData,
         ditheringMethod,
         foregroundColor,
-        backgroundColor
+        backgroundColor,
+        ditherSize
       );
 
       ctx.putImageData(dithered, 0, 0);
+
+      if (overlayOriginalColors) {
+        const overlayCanvas = document.createElement("canvas");
+        overlayCanvas.width = canvas.width;
+        overlayCanvas.height = canvas.height;
+        const overlayCtx = overlayCanvas.getContext("2d");
+        if (overlayCtx) {
+          overlayCtx.putImageData(imageData, 0, 0);
+          ctx.save();
+          ctx.globalCompositeOperation = "color";
+          ctx.drawImage(overlayCanvas, 0, 0);
+          ctx.restore();
+        }
+      }
       setDitheredCanvas(canvas);
+      setDitherMask(maskData);
       processingRef.current = false;
     }, 0);
-  }, [image, ditheringMethod, foregroundColor, backgroundColor, brightness, contrast, gamma, threshold]);
+  }, [image, ditheringMethod, foregroundColor, backgroundColor, brightness, contrast, gamma, threshold, ditherSize, overlayOriginalColors]);
 
   const handleExportPNG = () => {
     if (!ditheredCanvas) {
@@ -90,7 +109,7 @@ const Index = () => {
   };
 
   const handleExportSVG = () => {
-    if (!ditheredCanvas) {
+    if (!ditheredCanvas || !ditherMask) {
       toast({
         title: "Error",
         description: "No image to export",
@@ -99,7 +118,13 @@ const Index = () => {
       return;
     }
 
-    const svg = generateSVG(ditheredCanvas, foregroundColor, backgroundColor);
+    const svg = generateSVG(
+      ditherMask,
+      ditheredCanvas.width,
+      ditheredCanvas.height,
+      foregroundColor,
+      backgroundColor
+    );
     const blob = new Blob([svg], { type: "image/svg+xml" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -150,7 +175,7 @@ const Index = () => {
   };
 
   const handleCopySVG = async () => {
-    if (!ditheredCanvas) {
+    if (!ditheredCanvas || !ditherMask) {
       toast({
         title: "Error",
         description: "No image to copy",
@@ -160,7 +185,13 @@ const Index = () => {
     }
 
     try {
-      const svg = generateSVG(ditheredCanvas, foregroundColor, backgroundColor);
+      const svg = generateSVG(
+        ditherMask,
+        ditheredCanvas.width,
+        ditheredCanvas.height,
+        foregroundColor,
+        backgroundColor
+      );
       await navigator.clipboard.writeText(svg);
       toast({
         title: "Success",
@@ -180,6 +211,7 @@ const Index = () => {
     setContrast(0);
     setGamma(1);
     setThreshold(128);
+    setDitherSize(1);
     toast({
       title: "Reset",
       description: "Image adjustments restored to defaults",
@@ -197,6 +229,8 @@ const Index = () => {
       contrast,
       gamma,
       threshold,
+      ditherSize,
+      overlayOriginalColors,
     };
     saveImage(dataUrl, 'dither', metadata);
   };
@@ -218,6 +252,10 @@ const Index = () => {
         onGammaChange={setGamma}
         threshold={threshold}
         onThresholdChange={setThreshold}
+        ditherSize={ditherSize}
+        onDitherSizeChange={setDitherSize}
+        overlayOriginalColors={overlayOriginalColors}
+        onOverlayOriginalColorsChange={setOverlayOriginalColors}
         onSaveToGallery={handleSaveToGallery}
         onExportPNG={handleExportPNG}
         onExportSVG={handleExportSVG}

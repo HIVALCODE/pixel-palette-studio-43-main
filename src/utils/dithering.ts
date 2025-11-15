@@ -1,13 +1,36 @@
+export interface DitheringResult {
+  imageData: ImageData;
+  maskData: Uint8ClampedArray;
+}
+
 export const applyDithering = (
   imageData: ImageData,
   method: string,
   fgColor: string,
-  bgColor: string
-): ImageData => {
-  const width = imageData.width;
-  const height = imageData.height;
-  const data = new Uint8ClampedArray(imageData.data);
+  bgColor: string,
+  ditherSize = 1
+): DitheringResult => {
+  const originalWidth = imageData.width;
+  const originalHeight = imageData.height;
+
+  // Work on a copy so original data remains untouched
+  let workingImage = new ImageData(
+    new Uint8ClampedArray(imageData.data),
+    originalWidth,
+    originalHeight
+  );
+
+  if (ditherSize > 1) {
+    const scaledWidth = Math.max(1, Math.round(originalWidth / ditherSize));
+    const scaledHeight = Math.max(1, Math.round(originalHeight / ditherSize));
+    workingImage = resizeImageData(workingImage, scaledWidth, scaledHeight);
+  }
+
+  const width = workingImage.width;
+  const height = workingImage.height;
+  const data = new Uint8ClampedArray(workingImage.data);
   const output = new ImageData(width, height);
+  let maskData = new Uint8ClampedArray(width * height);
 
   // Parse colors
   const fg = hexToRgb(fgColor);
@@ -35,16 +58,31 @@ export const applyDithering = (
   }
 
   // Apply colors
-  for (let i = 0; i < data.length; i += 4) {
+  for (let i = 0, p = 0; i < data.length; i += 4, p++) {
     const isBlack = data[i] < 128;
     const color = isBlack ? fg : bg;
+    maskData[p] = data[i];
     output.data[i] = color.r;
     output.data[i + 1] = color.g;
     output.data[i + 2] = color.b;
     output.data[i + 3] = 255;
   }
 
-  return output;
+  let finalOutput = output;
+  if (
+    ditherSize > 1 &&
+    (output.width !== originalWidth || output.height !== originalHeight)
+  ) {
+    finalOutput = resizeImageData(output, originalWidth, originalHeight);
+    const maskImage = createImageDataFromMask(maskData, output.width, output.height);
+    const scaledMask = resizeImageData(maskImage, originalWidth, originalHeight);
+    maskData = new Uint8ClampedArray(originalWidth * originalHeight);
+    for (let i = 0, p = 0; i < scaledMask.data.length; i += 4, p++) {
+      maskData[p] = scaledMask.data[i];
+    }
+  }
+
+  return { imageData: finalOutput, maskData };
 };
 
 const hexToRgb = (hex: string): { r: number; g: number; b: number } => {
@@ -137,38 +175,26 @@ const distributeError = (
 };
 
 export const generateSVG = (
-  canvas: HTMLCanvasElement,
+  maskData: Uint8ClampedArray,
+  width: number,
+  height: number,
   fgColor: string,
   bgColor: string
 ): string => {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return "";
-
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const data = imageData.data;
-  const width = canvas.width;
-  const height = canvas.height;
-
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">`;
   svg += `<rect width="100%" height="100%" fill="${bgColor}"/>`;
 
-  // Group consecutive pixels in same row for optimization
   for (let y = 0; y < height; y++) {
     let x = 0;
     while (x < width) {
-      const i = (y * width + x) * 4;
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-      
-      // Check if pixel is foreground color
-      if (Math.abs(r - hexToRgb(fgColor).r) < 10) {
+      const index = y * width + x;
+      const isForeground = maskData[index] < 128;
+
+      if (isForeground) {
         let rectWidth = 1;
-        // Find consecutive foreground pixels
         while (x + rectWidth < width) {
-          const nextI = (y * width + (x + rectWidth)) * 4;
-          const nextR = data[nextI];
-          if (Math.abs(nextR - hexToRgb(fgColor).r) < 10) {
+          const nextIndex = y * width + (x + rectWidth);
+          if (maskData[nextIndex] < 128) {
             rectWidth++;
           } else {
             break;
@@ -184,4 +210,57 @@ export const generateSVG = (
 
   svg += "</svg>";
   return svg;
+};
+
+const resizeImageData = (
+  source: ImageData,
+  targetWidth: number,
+  targetHeight: number
+): ImageData => {
+  const sourceCanvas = document.createElement("canvas");
+  sourceCanvas.width = source.width;
+  sourceCanvas.height = source.height;
+  const sourceCtx = sourceCanvas.getContext("2d");
+
+  if (!sourceCtx) {
+    return new ImageData(new Uint8ClampedArray(source.data), source.width, source.height);
+  }
+
+  sourceCtx.putImageData(source, 0, 0);
+
+  const targetCanvas = document.createElement("canvas");
+  targetCanvas.width = targetWidth;
+  targetCanvas.height = targetHeight;
+  const targetCtx = targetCanvas.getContext("2d");
+
+  if (!targetCtx) {
+    return new ImageData(new Uint8ClampedArray(source.data), source.width, source.height);
+  }
+
+  targetCtx.imageSmoothingEnabled = false;
+  targetCtx.drawImage(
+    sourceCanvas,
+    0,
+    0,
+    source.width,
+    source.height,
+    0,
+    0,
+    targetWidth,
+    targetHeight
+  );
+
+  return targetCtx.getImageData(0, 0, targetWidth, targetHeight);
+};
+
+const createImageDataFromMask = (maskData: Uint8ClampedArray, width: number, height: number) => {
+  const maskImage = new ImageData(width, height);
+  for (let i = 0, p = 0; i < maskImage.data.length; i += 4, p++) {
+    const value = maskData[p];
+    maskImage.data[i] = value;
+    maskImage.data[i + 1] = value;
+    maskImage.data[i + 2] = value;
+    maskImage.data[i + 3] = 255;
+  }
+  return maskImage;
 };
