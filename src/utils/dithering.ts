@@ -33,8 +33,8 @@ export const applyDithering = (
   let maskData = new Uint8ClampedArray(width * height);
 
   // Parse colors
-  const fg = hexToRgb(fgColor);
-  const bg = hexToRgb(bgColor);
+  const fg = parseColor(fgColor);
+  const bg = parseColor(bgColor);
 
   // Convert to grayscale first
   for (let i = 0; i < data.length; i += 4) {
@@ -65,7 +65,7 @@ export const applyDithering = (
     output.data[i] = color.r;
     output.data[i + 1] = color.g;
     output.data[i + 2] = color.b;
-    output.data[i + 3] = 255;
+    output.data[i + 3] = color.a;
   }
 
   let finalOutput = output;
@@ -85,15 +85,20 @@ export const applyDithering = (
   return { imageData: finalOutput, maskData };
 };
 
-const hexToRgb = (hex: string): { r: number; g: number; b: number } => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+const parseColor = (value: string): { r: number; g: number; b: number; a: number } => {
+  if (value.trim().toLowerCase() === "transparent") {
+    return { r: 0, g: 0, b: 0, a: 0 };
+  }
+
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(value);
   return result
     ? {
         r: parseInt(result[1], 16),
         g: parseInt(result[2], 16),
         b: parseInt(result[3], 16),
+        a: 255,
       }
-    : { r: 0, g: 0, b: 0 };
+    : { r: 0, g: 0, b: 0, a: 255 };
 };
 
 const floydSteinberg = (data: Uint8ClampedArray, width: number, height: number) => {
@@ -181,30 +186,35 @@ export const generateSVG = (
   fgColor: string,
   bgColor: string
 ): string => {
+  const normalize = (color: string) => color.trim().toLowerCase() === "transparent";
+  const isForegroundTransparent = normalize(fgColor);
+  const isBackgroundTransparent = normalize(bgColor);
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">`;
-  svg += `<rect width="100%" height="100%" fill="${bgColor}"/>`;
 
   for (let y = 0; y < height; y++) {
     let x = 0;
     while (x < width) {
       const index = y * width + x;
       const isForeground = maskData[index] < 128;
+      const color = isForeground ? fgColor : bgColor;
+      const isTransparent = isForeground ? isForegroundTransparent : isBackgroundTransparent;
 
-      if (isForeground) {
-        let rectWidth = 1;
-        while (x + rectWidth < width) {
-          const nextIndex = y * width + (x + rectWidth);
-          if (maskData[nextIndex] < 128) {
-            rectWidth++;
-          } else {
-            break;
-          }
+      let rectWidth = 1;
+      while (x + rectWidth < width) {
+        const nextIndex = y * width + (x + rectWidth);
+        const nextIsForeground = maskData[nextIndex] < 128;
+        if (nextIsForeground === isForeground) {
+          rectWidth++;
+        } else {
+          break;
         }
-        svg += `<rect x="${x}" y="${y}" width="${rectWidth}" height="1" fill="${fgColor}"/>`;
-        x += rectWidth;
-      } else {
-        x++;
       }
+
+      if (!isTransparent) {
+        svg += `<rect x="${x}" y="${y}" width="${rectWidth}" height="1" fill="${color}"/>`;
+      }
+
+      x += rectWidth;
     }
   }
 

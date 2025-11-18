@@ -4,9 +4,10 @@ import { toast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, Copy, RotateCcw, Save } from "lucide-react";
-import { applyHalftone, generateHalftoneSVG } from "@/utils/halftone";
+import { applyHalftone, generateHalftoneSVG, HalftoneCell } from "@/utils/halftone";
 import { applyImageAdjustments } from "@/utils/imageAdjustments";
 import { useImage } from "@/contexts/ImageContext";
 import { useGallery } from "@/contexts/GalleryContext";
@@ -18,15 +19,29 @@ const Halftone = () => {
   const [pattern, setPattern] = useState<"circle" | "square" | "line" | "ellipse">("circle");
   const [dotSize, setDotSize] = useState(4);
   const [angle, setAngle] = useState(45);
+  const [foregroundColor, setForegroundColor] = useState("#000000");
+  const [backgroundColor, setBackgroundColor] = useState("#ffffff");
+  const [isForegroundTransparent, setIsForegroundTransparent] = useState(false);
+  const [isBackgroundTransparent, setIsBackgroundTransparent] = useState(false);
   const [brightness, setBrightness] = useState(0);
   const [contrast, setContrast] = useState(0);
   const [gamma, setGamma] = useState(1);
   const [threshold, setThreshold] = useState(128);
+  const [halftoneCells, setHalftoneCells] = useState<HalftoneCell[] | null>(null);
 
   const processingRef = useRef(false);
 
+  const resolvedForegroundColor = isForegroundTransparent ? "transparent" : foregroundColor;
+  const resolvedBackgroundColor = isBackgroundTransparent ? "transparent" : backgroundColor;
+
   useEffect(() => {
-    if (!image || processingRef.current) return;
+    if (!image) {
+      setProcessedCanvas(null);
+      setHalftoneCells(null);
+      return;
+    }
+
+    if (processingRef.current) return;
 
     processingRef.current = true;
 
@@ -54,13 +69,21 @@ const Halftone = () => {
       );
 
       // Then apply halftone
-      const halftoned = applyHalftone(imageData, dotSize, angle, pattern);
+      const { imageData: halftoned, cells } = applyHalftone(
+        imageData,
+        dotSize,
+        angle,
+        pattern,
+        resolvedForegroundColor,
+        resolvedBackgroundColor
+      );
 
       ctx.putImageData(halftoned, 0, 0);
       setProcessedCanvas(canvas);
+      setHalftoneCells(cells);
       processingRef.current = false;
     }, 0);
-  }, [image, pattern, dotSize, angle, brightness, contrast, gamma, threshold]);
+  }, [image, pattern, dotSize, angle, brightness, contrast, gamma, threshold, resolvedForegroundColor, resolvedBackgroundColor]);
 
   const handleExportPNG = () => {
     if (!processedCanvas) {
@@ -88,7 +111,7 @@ const Halftone = () => {
   };
 
   const handleExportSVG = () => {
-    if (!processedCanvas) {
+    if (!processedCanvas || !halftoneCells) {
       toast({
         title: "Error",
         description: "No image to export",
@@ -97,7 +120,16 @@ const Halftone = () => {
       return;
     }
 
-    const svg = generateHalftoneSVG(processedCanvas, dotSize, angle, pattern);
+    const svg = generateHalftoneSVG(
+      processedCanvas.width,
+      processedCanvas.height,
+      halftoneCells,
+      dotSize,
+      angle,
+      pattern,
+      resolvedForegroundColor,
+      resolvedBackgroundColor
+    );
     const blob = new Blob([svg], { type: "image/svg+xml" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -109,6 +141,41 @@ const Halftone = () => {
       title: "Success",
       description: "SVG exported successfully",
     });
+  };
+
+  const handleCopySVG = async () => {
+    if (!processedCanvas || !halftoneCells) {
+      toast({
+        title: "Error",
+        description: "No image to copy",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const svg = generateHalftoneSVG(
+        processedCanvas.width,
+        processedCanvas.height,
+        halftoneCells,
+        dotSize,
+        angle,
+        pattern,
+        resolvedForegroundColor,
+        resolvedBackgroundColor
+      );
+      await navigator.clipboard.writeText(svg);
+      toast({
+        title: "Success",
+        description: "SVG copied to clipboard",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to copy SVG to clipboard",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCopyPNG = async () => {
@@ -147,32 +214,6 @@ const Halftone = () => {
     }
   };
 
-  const handleCopySVG = async () => {
-    if (!processedCanvas) {
-      toast({
-        title: "Error",
-        description: "No image to copy",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const svg = generateHalftoneSVG(processedCanvas, dotSize, angle, pattern);
-      await navigator.clipboard.writeText(svg);
-      toast({
-        title: "Success",
-        description: "SVG copied to clipboard",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to copy SVG to clipboard",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleResetAdjustments = () => {
     setBrightness(0);
     setContrast(0);
@@ -181,6 +222,11 @@ const Halftone = () => {
     setPattern("circle");
     setDotSize(4);
     setAngle(45);
+    setForegroundColor("#000000");
+    setBackgroundColor("#ffffff");
+    setIsForegroundTransparent(false);
+    setIsBackgroundTransparent(false);
+    setHalftoneCells(null);
     toast({
       title: "Reset",
       description: "Settings restored to defaults",
@@ -190,7 +236,19 @@ const Halftone = () => {
   const handleSaveToGallery = () => {
     if (!processedCanvas) return;
     const dataUrl = processedCanvas.toDataURL('image/png');
-    const metadata = { brightness, contrast, gamma, threshold, pattern, dotSize, angle };
+    const metadata = {
+      brightness,
+      contrast,
+      gamma,
+      threshold,
+      pattern,
+      dotSize,
+      angle,
+      foregroundColor,
+      backgroundColor,
+      isForegroundTransparent,
+      isBackgroundTransparent,
+    };
     saveImage(dataUrl, 'halftone', metadata);
   };
 
@@ -323,6 +381,78 @@ const Halftone = () => {
                 value={[angle]}
                 onValueChange={(value) => setAngle(value[0])}
               />
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-border space-y-4">
+            <h3 className="text-sm font-semibold">Color Options</h3>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="halftone-foreground">Foreground Color</Label>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="halftone-foreground-transparent"
+                    checked={isForegroundTransparent}
+                    onCheckedChange={(checked) => setIsForegroundTransparent(checked === true)}
+                  />
+                  <span className="text-xs text-muted-foreground">Transparent</span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  id="halftone-foreground"
+                  type="color"
+                  value={foregroundColor}
+                  onChange={(e) => setForegroundColor(e.target.value)}
+                  disabled={isForegroundTransparent}
+                  className="w-12 h-10 rounded cursor-pointer border border-border disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <input
+                  type="text"
+                  value={foregroundColor}
+                  onChange={(e) => setForegroundColor(e.target.value)}
+                  disabled={isForegroundTransparent}
+                  className="flex-1 h-10 px-3 rounded-md border border-input bg-background text-sm disabled:opacity-70"
+                />
+              </div>
+              {isForegroundTransparent && (
+                <p className="text-xs text-muted-foreground">Foreground color is set to transparent.</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="halftone-background">Background Color</Label>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="halftone-background-transparent"
+                    checked={isBackgroundTransparent}
+                    onCheckedChange={(checked) => setIsBackgroundTransparent(checked === true)}
+                  />
+                  <span className="text-xs text-muted-foreground">Transparent</span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  id="halftone-background"
+                  type="color"
+                  value={backgroundColor}
+                  onChange={(e) => setBackgroundColor(e.target.value)}
+                  disabled={isBackgroundTransparent}
+                  className="w-12 h-10 rounded cursor-pointer border border-border disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <input
+                  type="text"
+                  value={backgroundColor}
+                  onChange={(e) => setBackgroundColor(e.target.value)}
+                  disabled={isBackgroundTransparent}
+                  className="flex-1 h-10 px-3 rounded-md border border-input bg-background text-sm disabled:opacity-70"
+                />
+              </div>
+              {isBackgroundTransparent && (
+                <p className="text-xs text-muted-foreground">Background color is set to transparent.</p>
+              )}
             </div>
           </div>
 

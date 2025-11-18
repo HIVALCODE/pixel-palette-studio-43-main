@@ -1,4 +1,4 @@
-import { Grid3x3, Circle, Grid2x2, Type, Grid as GridIcon, Images, Ruler } from "lucide-react";
+import { Grid3x3, Circle, Grid2x2, Type, Grid as GridIcon, Images, Ruler, Sparkles } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import efektaLogo from "@/assets/efekta-logo-white.svg";
 
@@ -56,6 +56,14 @@ export const Navigation = () => {
           >
             <Ruler className="h-4 w-4" />
             Perspective
+          </NavLink>
+          <NavLink
+            to="/glass"
+            className="px-4 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-brand hover:bg-brand-soft/60 transition-colors flex items-center gap-2"
+            activeClassName="bg-brand-soft text-brand-foreground shadow-[0_0_0_1px_theme(colors.brand.DEFAULT)]"
+          >
+            <Sparkles className="h-4 w-4" />
+            Glass
           </NavLink>
           <NavLink
             to="/gallery"

@@ -14,6 +14,8 @@ const Index = () => {
   const [ditheringMethod, setDitheringMethod] = useState("floyd-steinberg");
   const [foregroundColor, setForegroundColor] = useState("#000000");
   const [backgroundColor, setBackgroundColor] = useState("#ffffff");
+  const [isForegroundTransparent, setIsForegroundTransparent] = useState(false);
+  const [isBackgroundTransparent, setIsBackgroundTransparent] = useState(false);
   const [brightness, setBrightness] = useState(0);
   const [contrast, setContrast] = useState(0);
   const [gamma, setGamma] = useState(1);
@@ -23,6 +25,9 @@ const Index = () => {
   const [ditherMask, setDitherMask] = useState<Uint8ClampedArray | null>(null);
 
   const processingRef = useRef(false);
+
+  const resolvedForegroundColor = isForegroundTransparent ? "transparent" : foregroundColor;
+  const resolvedBackgroundColor = isBackgroundTransparent ? "transparent" : backgroundColor;
 
   useEffect(() => {
     if (!image || processingRef.current) return;
@@ -57,8 +62,8 @@ const Index = () => {
       const { imageData: dithered, maskData } = applyDithering(
         imageData,
         ditheringMethod,
-        foregroundColor,
-        backgroundColor,
+        resolvedForegroundColor,
+        resolvedBackgroundColor,
         ditherSize
       );
 
@@ -81,7 +86,7 @@ const Index = () => {
       setDitherMask(maskData);
       processingRef.current = false;
     }, 0);
-  }, [image, ditheringMethod, foregroundColor, backgroundColor, brightness, contrast, gamma, threshold, ditherSize, overlayOriginalColors]);
+  }, [image, ditheringMethod, resolvedForegroundColor, resolvedBackgroundColor, brightness, contrast, gamma, threshold, ditherSize, overlayOriginalColors]);
 
   const handleExportPNG = () => {
     if (!ditheredCanvas) {
@@ -122,8 +127,8 @@ const Index = () => {
       ditherMask,
       ditheredCanvas.width,
       ditheredCanvas.height,
-      foregroundColor,
-      backgroundColor
+      resolvedForegroundColor,
+      resolvedBackgroundColor
     );
     const blob = new Blob([svg], { type: "image/svg+xml" });
     const url = URL.createObjectURL(blob);
@@ -189,8 +194,8 @@ const Index = () => {
         ditherMask,
         ditheredCanvas.width,
         ditheredCanvas.height,
-        foregroundColor,
-        backgroundColor
+        resolvedForegroundColor,
+        resolvedBackgroundColor
       );
       await navigator.clipboard.writeText(svg);
       toast({
@@ -225,6 +230,8 @@ const Index = () => {
       ditheringMethod,
       foregroundColor,
       backgroundColor,
+      isForegroundTransparent,
+      isBackgroundTransparent,
       brightness,
       contrast,
       gamma,
@@ -242,8 +249,12 @@ const Index = () => {
         onDitheringMethodChange={setDitheringMethod}
         foregroundColor={foregroundColor}
         onForegroundColorChange={setForegroundColor}
+        isForegroundTransparent={isForegroundTransparent}
+        onForegroundTransparencyChange={setIsForegroundTransparent}
         backgroundColor={backgroundColor}
         onBackgroundColorChange={setBackgroundColor}
+        isBackgroundTransparent={isBackgroundTransparent}
+        onBackgroundTransparencyChange={setIsBackgroundTransparent}
         brightness={brightness}
         onBrightnessChange={setBrightness}
         contrast={contrast}

@@ -10,8 +10,12 @@ interface ControlPanelProps {
   onDitheringMethodChange: (value: string) => void;
   foregroundColor: string;
   onForegroundColorChange: (value: string) => void;
+  isForegroundTransparent: boolean;
+  onForegroundTransparencyChange: (value: boolean) => void;
   backgroundColor: string;
   onBackgroundColorChange: (value: string) => void;
+  isBackgroundTransparent: boolean;
+  onBackgroundTransparencyChange: (value: boolean) => void;
   brightness: number;
   onBrightnessChange: (value: number) => void;
   contrast: number;
@@ -38,8 +42,12 @@ export const ControlPanel = ({
   onDitheringMethodChange,
   foregroundColor,
   onForegroundColorChange,
+  isForegroundTransparent,
+  onForegroundTransparencyChange,
   backgroundColor,
   onBackgroundColorChange,
+  isBackgroundTransparent,
+  onBackgroundTransparencyChange,
   brightness,
   onBrightnessChange,
   contrast,
@@ -191,41 +199,71 @@ export const ControlPanel = ({
           <h3 className="text-sm font-semibold">Color Tinting</h3>
           
           <div className="space-y-2">
-            <Label htmlFor="foreground">Foreground Color</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="foreground">Foreground Color</Label>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="foreground-transparent"
+                  checked={isForegroundTransparent}
+                  onCheckedChange={(checked) => onForegroundTransparencyChange(checked === true)}
+                />
+                <span className="text-xs text-muted-foreground">Transparent</span>
+              </div>
+            </div>
             <div className="flex gap-2">
               <input
                 id="foreground"
                 type="color"
                 value={foregroundColor}
                 onChange={(e) => onForegroundColorChange(e.target.value)}
-                className="w-12 h-10 rounded cursor-pointer border border-border"
+                disabled={isForegroundTransparent}
+                className="w-12 h-10 rounded cursor-pointer border border-border disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <input
                 type="text"
                 value={foregroundColor}
                 onChange={(e) => onForegroundColorChange(e.target.value)}
-                className="flex-1 h-10 px-3 rounded-md border border-input bg-background text-sm"
+                disabled={isForegroundTransparent}
+                className="flex-1 h-10 px-3 rounded-md border border-input bg-background text-sm disabled:opacity-70"
               />
             </div>
+            {isForegroundTransparent && (
+              <p className="text-xs text-muted-foreground">Foreground color is set to transparent.</p>
+            )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="background">Background Color</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="background">Background Color</Label>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="background-transparent"
+                  checked={isBackgroundTransparent}
+                  onCheckedChange={(checked) => onBackgroundTransparencyChange(checked === true)}
+                />
+                <span className="text-xs text-muted-foreground">Transparent</span>
+              </div>
+            </div>
             <div className="flex gap-2">
               <input
                 id="background"
                 type="color"
                 value={backgroundColor}
                 onChange={(e) => onBackgroundColorChange(e.target.value)}
-                className="w-12 h-10 rounded cursor-pointer border border-border"
+                disabled={isBackgroundTransparent}
+                className="w-12 h-10 rounded cursor-pointer border border-border disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <input
                 type="text"
                 value={backgroundColor}
                 onChange={(e) => onBackgroundColorChange(e.target.value)}
-                className="flex-1 h-10 px-3 rounded-md border border-input bg-background text-sm"
+                disabled={isBackgroundTransparent}
+                className="flex-1 h-10 px-3 rounded-md border border-input bg-background text-sm disabled:opacity-70"
               />
             </div>
+            {isBackgroundTransparent && (
+              <p className="text-xs text-muted-foreground">Background color is set to transparent.</p>
+            )}
           </div>
         </div>
       </div>

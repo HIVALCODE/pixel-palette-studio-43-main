@@ -5,7 +5,7 @@ export interface SavedImage {
   id: string;
   dataUrl: string;
   thumbnail: string;
-  toolType: 'dither' | 'halftone' | 'pixel-art' | 'ascii-art' | 'mosaic';
+  toolType: 'dither' | 'halftone' | 'pixel-art' | 'ascii-art' | 'mosaic' | 'glass';
   timestamp: number;
   metadata?: Record<string, any>;
 }

@@ -1,62 +1,57 @@
+export interface HalftoneCell {
+  x: number;
+  y: number;
+  radius: number;
+}
+
+export interface HalftoneResult {
+  imageData: ImageData;
+  cells: HalftoneCell[];
+}
+
 export const generateHalftoneSVG = (
-  canvas: HTMLCanvasElement,
+  width: number,
+  height: number,
+  cells: HalftoneCell[],
   dotSize: number,
   angle: number,
-  pattern: "circle" | "square" | "line" | "ellipse"
+  pattern: "circle" | "square" | "line" | "ellipse",
+  fgColor: string,
+  bgColor: string
 ): string => {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return "";
+  const normalize = (color: string) => color.trim().toLowerCase() === "transparent";
+  const isForegroundTransparent = normalize(fgColor);
+  const isBackgroundTransparent = normalize(bgColor);
 
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const { width, height, data } = imageData;
-  
   let shapes = "";
-  const angleRad = (angle * Math.PI) / 180;
 
-  // Process image in grid cells
-  for (let y = 0; y < height; y += dotSize) {
-    for (let x = 0; x < width; x += dotSize) {
-      // Calculate average brightness in this cell
-      let totalBrightness = 0;
-      let pixelCount = 0;
+  if (!isForegroundTransparent) {
+    for (const cell of cells) {
+      if (cell.radius <= 0.5) continue;
 
-      for (let dy = 0; dy < dotSize && y + dy < height; dy++) {
-        for (let dx = 0; dx < dotSize && x + dx < width; dx++) {
-          const i = ((y + dy) * width + (x + dx)) * 4;
-          const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
-          totalBrightness += brightness;
-          pixelCount++;
+      const centerX = cell.x;
+      const centerY = cell.y;
+      const transform = `rotate(${angle} ${centerX} ${centerY})`;
+
+      switch (pattern) {
+        case "circle":
+          shapes += `<circle cx="${centerX}" cy="${centerY}" r="${cell.radius}" fill="${fgColor}" transform="${transform}" />\n`;
+          break;
+        case "square": {
+          const size = cell.radius * 1.4;
+          shapes += `<rect x="${centerX - size}" y="${centerY - size}" width="${size * 2}" height="${size * 2}" fill="${fgColor}" transform="${transform}" />\n`;
+          break;
         }
-      }
-
-      const avgBrightness = totalBrightness / pixelCount;
-      const maxRadius = dotSize / 2;
-      const radius = maxRadius * (1 - avgBrightness / 255);
-
-      if (radius > 0.5) {
-        const centerX = x + dotSize / 2;
-        const centerY = y + dotSize / 2;
-
-        switch (pattern) {
-          case "circle":
-            shapes += `<circle cx="${centerX}" cy="${centerY}" r="${radius}" fill="black" transform="rotate(${angle} ${centerX} ${centerY})" />\n`;
-            break;
-
-          case "square":
-            const size = radius * 1.4;
-            shapes += `<rect x="${centerX - size}" y="${centerY - size}" width="${size * 2}" height="${size * 2}" fill="black" transform="rotate(${angle} ${centerX} ${centerY})" />\n`;
-            break;
-
-          case "line":
-            const lineWidth = radius * 2;
-            shapes += `<rect x="${centerX - dotSize / 2}" y="${centerY - lineWidth / 2}" width="${dotSize}" height="${lineWidth}" fill="black" transform="rotate(${angle} ${centerX} ${centerY})" />\n`;
-            break;
-
-          case "ellipse":
-            const rx = radius * 1.5;
-            const ry = radius;
-            shapes += `<ellipse cx="${centerX}" cy="${centerY}" rx="${rx}" ry="${ry}" fill="black" transform="rotate(${angle} ${centerX} ${centerY})" />\n`;
-            break;
+        case "line": {
+          const lineWidth = cell.radius * 2;
+          shapes += `<rect x="${centerX - dotSize / 2}" y="${centerY - lineWidth / 2}" width="${dotSize}" height="${lineWidth}" fill="${fgColor}" transform="${transform}" />\n`;
+          break;
+        }
+        case "ellipse": {
+          const rx = cell.radius * 1.5;
+          const ry = cell.radius;
+          shapes += `<ellipse cx="${centerX}" cy="${centerY}" rx="${rx}" ry="${ry}" fill="${fgColor}" transform="${transform}" />\n`;
+          break;
         }
       }
     }
@@ -64,7 +59,7 @@ export const generateHalftoneSVG = (
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-  <rect width="100%" height="100%" fill="white"/>
+  ${isBackgroundTransparent ? "" : `<rect width="100%" height="100%" fill="${bgColor}"/>`}
   ${shapes}
 </svg>`;
 };
@@ -73,22 +68,28 @@ export const applyHalftone = (
   imageData: ImageData,
   dotSize: number,
   angle: number,
-  pattern: "circle" | "square" | "line" | "ellipse" = "circle"
-): ImageData => {
+  pattern: "circle" | "square" | "line" | "ellipse" = "circle",
+  fgColor: string = "#000000",
+  bgColor: string = "#ffffff"
+): HalftoneResult => {
   const { width, height, data } = imageData;
   const output = new ImageData(width, height);
-  
+  const cells: HalftoneCell[] = [];
+  const fg = parseColor(fgColor);
+  const bg = parseColor(bgColor);
+  const isForegroundTransparent = fg.a === 0;
+
   // Convert angle to radians
   const angleRad = (angle * Math.PI) / 180;
   const cos = Math.cos(angleRad);
   const sin = Math.sin(angleRad);
 
-  // Fill with white background
+  // Fill with background color
   for (let i = 0; i < output.data.length; i += 4) {
-    output.data[i] = 255;
-    output.data[i + 1] = 255;
-    output.data[i + 2] = 255;
-    output.data[i + 3] = 255;
+    output.data[i] = bg.r;
+    output.data[i + 1] = bg.g;
+    output.data[i + 2] = bg.b;
+    output.data[i + 3] = bg.a;
   }
 
   // Process image in grid cells
@@ -116,6 +117,9 @@ export const applyHalftone = (
       // Draw the halftone pattern
       const centerX = x + dotSize / 2;
       const centerY = y + dotSize / 2;
+      if (radius > 0) {
+        cells.push({ x: centerX, y: centerY, radius });
+      }
 
       // Apply rotation and draw pattern
       for (let dy = 0; dy < dotSize && y + dy < height; dy++) {
@@ -158,17 +162,33 @@ export const applyHalftone = (
               break;
           }
           
-          if (shouldDraw) {
+          if (shouldDraw && !isForegroundTransparent) {
             const i = (py * width + px) * 4;
-            output.data[i] = 0;
-            output.data[i + 1] = 0;
-            output.data[i + 2] = 0;
-            output.data[i + 3] = 255;
+            output.data[i] = fg.r;
+            output.data[i + 1] = fg.g;
+            output.data[i + 2] = fg.b;
+            output.data[i + 3] = fg.a;
           }
         }
       }
     }
   }
 
-  return output;
+  return { imageData: output, cells };
+};
+
+const parseColor = (value: string): { r: number; g: number; b: number; a: number } => {
+  if (value.trim().toLowerCase() === "transparent") {
+    return { r: 0, g: 0, b: 0, a: 0 };
+  }
+
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(value);
+  return result
+    ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+        a: 255,
+      }
+    : { r: 0, g: 0, b: 0, a: 255 };
 };
