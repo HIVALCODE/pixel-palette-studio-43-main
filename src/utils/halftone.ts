@@ -70,7 +70,8 @@ export const applyHalftone = (
   angle: number,
   pattern: "circle" | "square" | "line" | "ellipse" = "circle",
   fgColor: string = "#000000",
-  bgColor: string = "#ffffff"
+  bgColor: string = "#ffffff",
+  invert: boolean = false
 ): HalftoneResult => {
   const { width, height, data } = imageData;
   const output = new ImageData(width, height);
@@ -109,10 +110,11 @@ export const applyHalftone = (
       }
 
       const avgBrightness = totalBrightness / pixelCount;
+      const normalizedBrightness = Math.max(0, Math.min(1, avgBrightness / 255));
       
-      // Convert brightness to dot radius (darker = larger dot)
+      // Convert brightness to dot radius. Invert when requested.
       const maxRadius = dotSize / 2;
-      const radius = maxRadius * (1 - avgBrightness / 255);
+      const radius = maxRadius * (invert ? normalizedBrightness : 1 - normalizedBrightness);
 
       // Draw the halftone pattern
       const centerX = x + dotSize / 2;

@@ -28,6 +28,7 @@ const Halftone = () => {
   const [gamma, setGamma] = useState(1);
   const [threshold, setThreshold] = useState(128);
   const [halftoneCells, setHalftoneCells] = useState<HalftoneCell[] | null>(null);
+  const [invertHalftone, setInvertHalftone] = useState(false);
 
   const processingRef = useRef(false);
 
@@ -75,7 +76,8 @@ const Halftone = () => {
         angle,
         pattern,
         resolvedForegroundColor,
-        resolvedBackgroundColor
+        resolvedBackgroundColor,
+        invertHalftone
       );
 
       ctx.putImageData(halftoned, 0, 0);
@@ -83,7 +85,7 @@ const Halftone = () => {
       setHalftoneCells(cells);
       processingRef.current = false;
     }, 0);
-  }, [image, pattern, dotSize, angle, brightness, contrast, gamma, threshold, resolvedForegroundColor, resolvedBackgroundColor]);
+  }, [image, pattern, dotSize, angle, brightness, contrast, gamma, threshold, resolvedForegroundColor, resolvedBackgroundColor, invertHalftone]);
 
   const handleExportPNG = () => {
     if (!processedCanvas) {
@@ -226,6 +228,7 @@ const Halftone = () => {
     setBackgroundColor("#ffffff");
     setIsForegroundTransparent(false);
     setIsBackgroundTransparent(false);
+    setInvertHalftone(false);
     setHalftoneCells(null);
     toast({
       title: "Reset",
@@ -248,6 +251,7 @@ const Halftone = () => {
       backgroundColor,
       isForegroundTransparent,
       isBackgroundTransparent,
+      invertHalftone,
     };
     saveImage(dataUrl, 'halftone', metadata);
   };
@@ -380,6 +384,18 @@ const Halftone = () => {
                 step={5}
                 value={[angle]}
                 onValueChange={(value) => setAngle(value[0])}
+              />
+            </div>
+
+            <div className="flex items-start justify-between gap-4 pt-2">
+              <div>
+                <Label htmlFor="invert-halftone" className="text-sm">Invert Halftone</Label>
+                <p className="text-xs text-muted-foreground">Reverse dot density instead of just swapping colors.</p>
+              </div>
+              <Checkbox
+                id="invert-halftone"
+                checked={invertHalftone}
+                onCheckedChange={(checked) => setInvertHalftone(checked === true)}
               />
             </div>
           </div>
