@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { ReactNode, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +26,7 @@ interface SvgPerspectivePanelProps {
   customBackground: string;
   onCustomBackgroundChange: (value: string) => void;
   onResetView: () => void;
+  children?: ReactNode;
 }
 
 export const SvgPerspectivePanel = ({
@@ -46,6 +47,7 @@ export const SvgPerspectivePanel = ({
   customBackground,
   onCustomBackgroundChange,
   onResetView,
+  children,
 }: SvgPerspectivePanelProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -219,6 +221,10 @@ export const SvgPerspectivePanel = ({
           </Button>
         </div>
       </div>
+
+      {children && (
+        <div className="border-t border-border pt-4">{children}</div>
+      )}
     </div>
   );
 };

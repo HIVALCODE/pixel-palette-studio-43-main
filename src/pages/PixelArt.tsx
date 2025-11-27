@@ -10,6 +10,16 @@ import { applyPixelArt, generatePixelArtSVG } from "@/utils/pixelart";
 import { applyImageAdjustments } from "@/utils/imageAdjustments";
 import { useImage } from "@/contexts/ImageContext";
 import { useGallery } from "@/contexts/GalleryContext";
+import { ToolPresetManager } from "@/components/ToolPresetManager";
+
+type PixelPresetState = {
+  pixelSize: number;
+  colorPalette: "full" | "8bit" | "gameboy" | "4color" | "bw";
+  brightness: number;
+  contrast: number;
+  gamma: number;
+  threshold: number;
+};
 
 const PixelArt = () => {
   const { image } = useImage();
@@ -192,6 +202,24 @@ const PixelArt = () => {
     saveImage(dataUrl, 'pixel-art', metadata);
   };
 
+  const pixelPresetState: PixelPresetState = {
+    pixelSize,
+    colorPalette,
+    brightness,
+    contrast,
+    gamma,
+    threshold,
+  };
+
+  const handleApplyPresetState = (state: PixelPresetState) => {
+    setPixelSize(state.pixelSize);
+    setColorPalette(state.colorPalette);
+    setBrightness(state.brightness);
+    setContrast(state.contrast);
+    setGamma(state.gamma);
+    setThreshold(state.threshold);
+  };
+
   return (
     <div className="flex h-[calc(100vh-3.5rem)] w-full overflow-hidden">
       <div className="w-80 bg-panel border-r border-border h-full p-6 flex flex-col gap-6 overflow-y-auto">
@@ -199,6 +227,13 @@ const PixelArt = () => {
           <h1 className="text-2xl font-bold mb-2">Pixel Art Tool</h1>
           <p className="text-sm text-muted-foreground">Convert images to pixel art style</p>
         </div>
+
+        <ToolPresetManager<PixelPresetState>
+          toolId="pixel-art"
+          currentState={pixelPresetState}
+          onApply={handleApplyPresetState}
+          disabled={!image}
+        />
 
         <div className="flex flex-col gap-4">
           <div className="space-y-4">

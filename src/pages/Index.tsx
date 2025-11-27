@@ -6,6 +6,21 @@ import { applyImageAdjustments } from "@/utils/imageAdjustments";
 import { toast } from "@/hooks/use-toast";
 import { useImage } from "@/contexts/ImageContext";
 import { useGallery } from "@/contexts/GalleryContext";
+import { ToolPresetManager } from "@/components/ToolPresetManager";
+
+type DitherPresetState = {
+  ditheringMethod: string;
+  foregroundColor: string;
+  backgroundColor: string;
+  isForegroundTransparent: boolean;
+  isBackgroundTransparent: boolean;
+  brightness: number;
+  contrast: number;
+  gamma: number;
+  threshold: number;
+  ditherSize: number;
+  overlayOriginalColors: boolean;
+};
 
 const Index = () => {
   const { image } = useImage();
@@ -242,6 +257,34 @@ const Index = () => {
     saveImage(dataUrl, 'dither', metadata);
   };
 
+  const ditherPresetState: DitherPresetState = {
+    ditheringMethod,
+    foregroundColor,
+    backgroundColor,
+    isForegroundTransparent,
+    isBackgroundTransparent,
+    brightness,
+    contrast,
+    gamma,
+    threshold,
+    ditherSize,
+    overlayOriginalColors,
+  };
+
+  const handleApplyPresetState = (state: DitherPresetState) => {
+    setDitheringMethod(state.ditheringMethod);
+    setForegroundColor(state.foregroundColor);
+    setBackgroundColor(state.backgroundColor);
+    setIsForegroundTransparent(state.isForegroundTransparent);
+    setIsBackgroundTransparent(state.isBackgroundTransparent);
+    setBrightness(state.brightness);
+    setContrast(state.contrast);
+    setGamma(state.gamma);
+    setThreshold(state.threshold);
+    setDitherSize(state.ditherSize);
+    setOverlayOriginalColors(state.overlayOriginalColors);
+  };
+
   return (
     <div className="flex h-[calc(100vh-3.5rem)] w-full overflow-hidden">
       <ControlPanel
@@ -274,6 +317,14 @@ const Index = () => {
         onCopySVG={handleCopySVG}
         onResetAdjustments={handleResetAdjustments}
         hasImage={!!ditheredCanvas}
+        presetSlot={
+          <ToolPresetManager<DitherPresetState>
+            toolId="dither"
+            currentState={ditherPresetState}
+            onApply={handleApplyPresetState}
+            disabled={!image}
+          />
+        }
       />
       <Canvas image={image} ditheredCanvas={ditheredCanvas} />
     </div>

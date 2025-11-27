@@ -1,3 +1,4 @@
+import { ReactNode } from "react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ interface ControlPanelProps {
   onCopySVG: () => void;
   onResetAdjustments: () => void;
   hasImage: boolean;
+  presetSlot?: ReactNode;
 }
 
 export const ControlPanel = ({
@@ -67,6 +69,7 @@ export const ControlPanel = ({
   onCopySVG,
   onResetAdjustments,
   hasImage,
+  presetSlot,
 }: ControlPanelProps) => {
   return (
     <div className="w-80 bg-panel border-r border-border h-full p-6 flex flex-col gap-6 overflow-y-auto">
@@ -74,6 +77,8 @@ export const ControlPanel = ({
         <h1 className="text-2xl font-bold mb-2">Dither Tool</h1>
         <p className="text-sm text-muted-foreground">Transform images with dithering effects</p>
       </div>
+
+      {presetSlot}
 
       <div className="flex flex-col gap-4">
         <div className="space-y-4">

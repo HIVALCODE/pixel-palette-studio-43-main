@@ -11,6 +11,19 @@ import { Download, Copy, Save } from "lucide-react";
 import { toast } from "sonner";
 import { useImage } from "@/contexts/ImageContext";
 import { useGallery } from "@/contexts/GalleryContext";
+import { ToolPresetManager } from "@/components/ToolPresetManager";
+
+type MosaicPresetState = {
+  brightness: number;
+  contrast: number;
+  gamma: number;
+  threshold: number;
+  columns: number;
+  rows: number;
+  cellWidthPx: number;
+  cellHeightPx: number;
+  colorMethod: ColorMethod;
+};
 
 export default function Mosaic() {
   const { image } = useImage();
@@ -151,6 +164,30 @@ export default function Mosaic() {
     saveImage(dataUrl, 'mosaic', metadata);
   };
 
+  const mosaicPresetState: MosaicPresetState = {
+    brightness,
+    contrast,
+    gamma,
+    threshold,
+    columns,
+    rows,
+    cellWidthPx,
+    cellHeightPx,
+    colorMethod,
+  };
+
+  const handleApplyPresetState = (state: MosaicPresetState) => {
+    setBrightness(state.brightness);
+    setContrast(state.contrast);
+    setGamma(state.gamma);
+    setThreshold(state.threshold);
+    setColumns(state.columns);
+    setRows(state.rows);
+    setCellWidthPx(state.cellWidthPx);
+    setCellHeightPx(state.cellHeightPx);
+    setColorMethod(state.colorMethod);
+  };
+
   const handleKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement>,
     setValue: (val: number) => void,
@@ -173,6 +210,13 @@ export default function Mosaic() {
     <div className="flex h-[calc(100vh-3.5rem)]">
       <div className="w-80 bg-panel border-r border-border overflow-y-auto p-6">
         <div className="space-y-6">
+          <ToolPresetManager<MosaicPresetState>
+            toolId="mosaic"
+            currentState={mosaicPresetState}
+            onApply={handleApplyPresetState}
+            disabled={!image}
+          />
+
           <div className="space-y-4">
             <h3 className="text-sm font-semibold">Image Adjustments</h3>
             

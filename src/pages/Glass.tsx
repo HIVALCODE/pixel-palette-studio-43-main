@@ -12,8 +12,18 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { displacementPresets, generatePresetPreview, createPresetCanvas } from "@/utils/displacementMaps";
 import { applyGlassFilter } from "@/utils/glass";
+import { ToolPresetManager } from "@/components/ToolPresetManager";
 
 const defaultPresetId = displacementPresets[0].id;
+
+type GlassPresetState = {
+  distortion: number;
+  smoothness: number;
+  scale: number;
+  invert: boolean;
+  selectedTexture: string;
+  customTextureName: string;
+};
 
 const Glass = () => {
   const { image } = useImage();
@@ -131,6 +141,34 @@ const Glass = () => {
     });
   };
 
+  const glassPresetState: GlassPresetState = {
+    distortion,
+    smoothness,
+    scale,
+    invert,
+    selectedTexture,
+    customTextureName,
+  };
+
+  const handleApplyPresetState = (state: GlassPresetState) => {
+    setDistortion(state.distortion);
+    setSmoothness(state.smoothness);
+    setScale(state.scale);
+    setInvert(state.invert);
+    setCustomTextureName(state.customTextureName);
+
+    if (state.selectedTexture === "custom" && !customTexture) {
+      toast({
+        title: "Custom texture required",
+        description: "Load your custom displacement texture before using this preset.",
+        variant: "destructive",
+      });
+      setSelectedTexture(defaultPresetId);
+    } else {
+      setSelectedTexture(state.selectedTexture);
+    }
+  };
+
   const handleUploadTexture = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -190,6 +228,13 @@ const Glass = () => {
             <p className="text-xs text-muted-foreground">Photoshop-style refraction powered by displacement textures.</p>
           </div>
         </div>
+
+        <ToolPresetManager<GlassPresetState>
+          toolId="glass"
+          currentState={glassPresetState}
+          onApply={handleApplyPresetState}
+          disabled={!image}
+        />
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">

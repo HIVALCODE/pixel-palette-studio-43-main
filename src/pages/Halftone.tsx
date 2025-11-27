@@ -7,10 +7,27 @@ import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, Copy, RotateCcw, Save } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { applyHalftone, generateHalftoneSVG, HalftoneCell } from "@/utils/halftone";
 import { applyImageAdjustments } from "@/utils/imageAdjustments";
 import { useImage } from "@/contexts/ImageContext";
 import { useGallery } from "@/contexts/GalleryContext";
+import { ToolPresetManager } from "@/components/ToolPresetManager";
+
+type HalftonePresetState = {
+  pattern: "circle" | "square" | "line" | "ellipse";
+  dotSize: number;
+  angle: number;
+  foregroundColor: string;
+  backgroundColor: string;
+  isForegroundTransparent: boolean;
+  isBackgroundTransparent: boolean;
+  brightness: number;
+  contrast: number;
+  gamma: number;
+  threshold: number;
+  invertHalftone: boolean;
+};
 
 const Halftone = () => {
   const { image } = useImage();
@@ -256,6 +273,36 @@ const Halftone = () => {
     saveImage(dataUrl, 'halftone', metadata);
   };
 
+  const halftonePresetState: HalftonePresetState = {
+    pattern,
+    dotSize,
+    angle,
+    foregroundColor,
+    backgroundColor,
+    isForegroundTransparent,
+    isBackgroundTransparent,
+    brightness,
+    contrast,
+    gamma,
+    threshold,
+    invertHalftone,
+  };
+
+  const handleApplyPresetState = (state: HalftonePresetState) => {
+    setPattern(state.pattern);
+    setDotSize(state.dotSize);
+    setAngle(state.angle);
+    setForegroundColor(state.foregroundColor);
+    setBackgroundColor(state.backgroundColor);
+    setIsForegroundTransparent(state.isForegroundTransparent);
+    setIsBackgroundTransparent(state.isBackgroundTransparent);
+    setBrightness(state.brightness);
+    setContrast(state.contrast);
+    setGamma(state.gamma);
+    setThreshold(state.threshold);
+    setInvertHalftone(state.invertHalftone);
+  };
+
   return (
     <div className="flex h-[calc(100vh-3.5rem)] w-full overflow-hidden">
       <div className="w-80 bg-panel border-r border-border h-full p-6 flex flex-col gap-6 overflow-y-auto">
@@ -263,6 +310,13 @@ const Halftone = () => {
           <h1 className="text-2xl font-bold mb-2">Halftone Tool</h1>
           <p className="text-sm text-muted-foreground">Create halftone effects from images</p>
         </div>
+
+        <ToolPresetManager<HalftonePresetState>
+          toolId="halftone"
+          currentState={halftonePresetState}
+          onApply={handleApplyPresetState}
+          disabled={!image}
+        />
 
         <div className="flex flex-col gap-4">
           <div className="space-y-4">
@@ -365,10 +419,23 @@ const Halftone = () => {
               <Slider
                 id="dotSize"
                 min={2}
-                max={20}
+                max={100}
                 step={1}
                 value={[dotSize]}
                 onValueChange={(value) => setDotSize(value[0])}
+              />
+              <Input
+                id="dotSize-input"
+                type="number"
+                min={2}
+                max={100}
+                step={1}
+                value={dotSize}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  if (Number.isNaN(value)) return;
+                  setDotSize(Math.min(100, Math.max(2, value)));
+                }}
               />
             </div>
 
@@ -381,9 +448,22 @@ const Halftone = () => {
                 id="angle"
                 min={0}
                 max={90}
-                step={5}
+                step={1}
                 value={[angle]}
                 onValueChange={(value) => setAngle(value[0])}
+              />
+              <Input
+                id="angle-input"
+                type="number"
+                min={0}
+                max={90}
+                step={1}
+                value={angle}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  if (Number.isNaN(value)) return;
+                  setAngle(Math.min(90, Math.max(0, value)));
+                }}
               />
             </div>
 

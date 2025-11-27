@@ -15,6 +15,17 @@ import { applyImageAdjustments } from "@/utils/imageAdjustments";
 import { generateAsciiArt, renderAsciiToPNG, generateAsciiSVG } from "@/utils/ascii";
 import { useImage } from "@/contexts/ImageContext";
 import { useGallery } from "@/contexts/GalleryContext";
+import { ToolPresetManager } from "@/components/ToolPresetManager";
+
+type AsciiPresetState = {
+  brightness: number;
+  contrast: number;
+  gamma: number;
+  threshold: number;
+  charSet: 'standard' | 'simple' | 'detailed' | 'blocks';
+  fontSize: number;
+  maxWidth: number;
+};
 
 const AsciiArt = () => {
   const { image } = useImage();
@@ -71,6 +82,26 @@ const AsciiArt = () => {
     const dataUrl = canvas.toDataURL('image/png');
     const metadata = { brightness, contrast, gamma, threshold, charSet, fontSize, maxWidth };
     saveImage(dataUrl, 'ascii-art', metadata);
+  };
+
+  const asciiPresetState: AsciiPresetState = {
+    brightness,
+    contrast,
+    gamma,
+    threshold,
+    charSet,
+    fontSize,
+    maxWidth,
+  };
+
+  const handleApplyPresetState = (state: AsciiPresetState) => {
+    setBrightness(state.brightness);
+    setContrast(state.contrast);
+    setGamma(state.gamma);
+    setThreshold(state.threshold);
+    setCharSet(state.charSet);
+    setFontSize(state.fontSize);
+    setMaxWidth(state.maxWidth);
   };
 
   const handleExportPNG = () => {
@@ -193,6 +224,13 @@ const AsciiArt = () => {
             Paste an image to convert it into ASCII art
           </p>
         </div>
+
+        <ToolPresetManager<AsciiPresetState>
+          toolId="ascii-art"
+          currentState={asciiPresetState}
+          onApply={handleApplyPresetState}
+          disabled={!image}
+        />
 
         <div className="space-y-4">
           <h3 className="text-sm font-semibold">Image Adjustments</h3>

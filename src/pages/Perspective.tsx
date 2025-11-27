@@ -4,6 +4,17 @@ import { PerspectiveWorkspace } from "@/components/perspective/PerspectiveWorksp
 import { buildSvgMarkup, computeHomography, parseSvgMarkup, ParsedSvg, Point, warpShapes } from "@/utils/perspective";
 import { toast } from "@/hooks/use-toast";
 import type { PreviewBackground } from "@/types/perspective";
+import { ToolPresetManager } from "@/components/ToolPresetManager";
+
+type PerspectivePresetState = {
+  quality: number;
+  showGrid: boolean;
+  snapToGrid: boolean;
+  zoom: number;
+  pan: { x: number; y: number };
+  background: PreviewBackground;
+  customBackground: string;
+};
 
 const defaultCorners = (width: number, height: number): Point[] => ([
   { x: 0, y: 0 },
@@ -134,6 +145,25 @@ const Perspective = () => {
   };
 
   const hasSvg = Boolean(parsed && warpedPaths.length);
+  const presetState: PerspectivePresetState = {
+    quality,
+    showGrid,
+    snapToGrid,
+    zoom,
+    pan,
+    background,
+    customBackground,
+  };
+
+  const handleApplyPresetState = (state: PerspectivePresetState) => {
+    setQuality(state.quality);
+    setShowGrid(state.showGrid);
+    setSnapToGrid(state.snapToGrid);
+    setZoom(state.zoom);
+    setPan({ ...state.pan });
+    setBackground(state.background);
+    setCustomBackground(state.customBackground);
+  };
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)]">
@@ -158,7 +188,14 @@ const Perspective = () => {
         customBackground={customBackground}
         onCustomBackgroundChange={setCustomBackground}
         onResetView={resetView}
-      />
+      >
+        <ToolPresetManager<PerspectivePresetState>
+          toolId="perspective"
+          currentState={presetState}
+          onApply={handleApplyPresetState}
+          disabled={!hasSvg}
+        />
+      </SvgPerspectivePanel>
       <PerspectiveWorkspace
         parsed={parsed}
         corners={corners}
