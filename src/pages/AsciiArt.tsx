@@ -25,6 +25,7 @@ type AsciiPresetState = {
   charSet: 'standard' | 'simple' | 'detailed' | 'blocks';
   fontSize: number;
   maxWidth: number;
+  edgeSharpness: number;
 };
 
 const AsciiArt = () => {
@@ -38,6 +39,7 @@ const AsciiArt = () => {
   const [charSet, setCharSet] = useState<'standard' | 'simple' | 'detailed' | 'blocks'>('standard');
   const [fontSize, setFontSize] = useState(8);
   const [maxWidth, setMaxWidth] = useState(120);
+  const [edgeSharpness, setEdgeSharpness] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
 
@@ -62,9 +64,9 @@ const AsciiArt = () => {
     );
     ctx.putImageData(adjusted, 0, 0);
 
-    const ascii = generateAsciiArt(adjusted, maxWidth, charSet);
+    const ascii = generateAsciiArt(adjusted, maxWidth, charSet, edgeSharpness);
     setAsciiText(ascii);
-  }, [image, brightness, contrast, gamma, threshold, charSet, maxWidth]);
+  }, [image, brightness, contrast, gamma, threshold, charSet, maxWidth, edgeSharpness]);
 
   const handleResetAdjustments = () => {
     setBrightness(0);
@@ -74,13 +76,14 @@ const AsciiArt = () => {
     setCharSet('standard');
     setFontSize(8);
     setMaxWidth(120);
+    setEdgeSharpness(0);
   };
 
   const handleSaveToGallery = () => {
     if (!asciiText) return;
     const canvas = renderAsciiToPNG(asciiText, fontSize);
     const dataUrl = canvas.toDataURL('image/png');
-    const metadata = { brightness, contrast, gamma, threshold, charSet, fontSize, maxWidth };
+    const metadata = { brightness, contrast, gamma, threshold, charSet, fontSize, maxWidth, edgeSharpness };
     saveImage(dataUrl, 'ascii-art', metadata);
   };
 
@@ -92,6 +95,7 @@ const AsciiArt = () => {
     charSet,
     fontSize,
     maxWidth,
+    edgeSharpness,
   };
 
   const handleApplyPresetState = (state: AsciiPresetState) => {
@@ -102,6 +106,7 @@ const AsciiArt = () => {
     setCharSet(state.charSet);
     setFontSize(state.fontSize);
     setMaxWidth(state.maxWidth);
+    setEdgeSharpness(state.edgeSharpness);
   };
 
   const handleExportPNG = () => {
@@ -352,6 +357,23 @@ const AsciiArt = () => {
               step={10}
               value={[maxWidth]}
               onValueChange={(value) => setMaxWidth(value[0])}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <Label htmlFor="edgeSharpness">Edge Sharpness</Label>
+              <span className="text-xs text-muted-foreground">
+                {(edgeSharpness * 100).toFixed(0)}%
+              </span>
+            </div>
+            <Slider
+              id="edgeSharpness"
+              min={0}
+              max={1}
+              step={0.01}
+              value={[edgeSharpness]}
+              onValueChange={(value) => setEdgeSharpness(value[0])}
             />
           </div>
         </div>
